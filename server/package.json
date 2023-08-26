@@ -1,0 +1,19 @@
+{
+    "name": "udp-tester",
+    "description": "Tool for testing UDP on Particle devices",
+    "version": "0.0.1",
+    "private": true,
+    "license": "MIT",
+    "author": "rick@particle.io",
+    "engines": {
+        "node": ">=16"
+    },
+    "scripts": {
+        "start": "node app.js"
+    },
+    "dependencies": {
+        "@rickkas7/particle-node-cli-helper": "^0.0.1",
+        "particle-usb": "^2.3.1",
+        "yargs": "^17.6.0"
+    }
+}
