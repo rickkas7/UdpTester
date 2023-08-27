@@ -60,7 +60,11 @@ async function run() {
             };
             const res = await usbDevice.sendControlRequest(10, JSON.stringify(reqObj));
 
-            console.log('res', res);
+            if (res.result == 0 && typeof res.data !== 'undefined') {
+                console.log('res', res);
+                //const json = JSON.parse(res.data);
+                //console.log('msg', json);
+            }
         }
         catch(e) {
             console.log('control request exception', e);
@@ -78,16 +82,44 @@ async function run() {
         showQuitOption: true,
     };
 
-    const tests = [
-        'Upload (from device)',
-        'Download (to device)',
+    const testCommands = [
+        {
+            'title': 'Set interval',
+            'function': function() {
+
+            },
+        },
+        {
+            'title': 'Set packet size',
+            'function': function() {
+
+            },
+        },
+        {
+            'title': 'Run upload test (from device)',
+            'function': function() {
+
+            },
+        },
+        {
+            'title': 'Run download (to device)',
+            'function': function() {
+
+            },
+        },
     ];
-    
+
     while(true) {
-        const test = await helper.questionMenu('Function? ', tests, testOptions);
+        let titles = [];
+        for(const obj of testCommands) {
+            titles.push(obj.title);
+        }
+
+        const result = await helper.questionMenu('Function? ', titles, testOptions);
 
         // Note: result is a zero-based index 
-        console.log('test', test);    
+
+        testCommands[result].function();
     }
 }
 

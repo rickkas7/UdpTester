@@ -46,7 +46,6 @@ void loop() {
 }
 
 void ctrl_request_custom_handler(ctrl_request *req) {
-    Log.info("received control request");
 
     int result = ControlRequest::instance().customHandler(req);
 
@@ -56,20 +55,3 @@ void ctrl_request_custom_handler(ctrl_request *req) {
     system_ctrl_set_result(req, result, nullptr, nullptr, nullptr);
 }
 
-
-// op=msg Get outstanding messages from the message queue
-// Returns a single JSON message. If there are no outstanding messages, returns an empty string
-REGISTER_CONTROL_REQUEST_HANDLER([](ControlRequestState &state, JSONValue &outerObj, JSONBufferWriter &writer) {
-    int result = SYSTEM_ERROR_NOT_SUPPORTED;
-
-    Log.info("in control request msg handler");
-
-    if (state.op == "msg") {
-        // Normally you use writer, but since we need to use pre-formatted JSON, we just replace
-        // the entire buffer
-        ControlRequestMessageQueue::instance().take(state.responseBuffer, state.responseBufferSize);
-        result = SYSTEM_ERROR_NONE;
-    }
-
-    return result;
-});

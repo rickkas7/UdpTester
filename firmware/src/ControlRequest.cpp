@@ -55,8 +55,14 @@ int ControlRequest::customHandler(ctrl_request *req) {
                 break;
             }
         }
-
+        char ch1 = responseBuffer[1];
         writer.endObject();
+
+        if (result == RESULT_RAW_BUFFER) {           
+            // Put back the second character of the buffer that was overwritten by endObject
+            responseBuffer[1] = ch1;
+            result = SYSTEM_ERROR_NONE;
+        }
     }
 
     if (result == RESULT_CONTINUE) {
@@ -135,8 +141,8 @@ bool ControlRequestMessageQueue::take(char *buf, size_t bufSize) {
         size_t len = strlen(json);
         if (len <= (bufSize - 1)) {
             strcpy(buf, json);
+            return true;
         }
-        return true;
     }
     return false;
 }
@@ -150,8 +156,12 @@ REGISTER_CONTROL_REQUEST_HANDLER([](ControlRequestState &state, JSONValue &outer
     if (state.op == "msg") {
         // Normally you use writer, but since we need to use pre-formatted JSON, we just replace
         // the entire buffer
-        ControlRequestMessageQueue::instance().take(state.responseBuffer, state.responseBufferSize);
-        result = SYSTEM_ERROR_NONE;
+        if (ControlRequestMessageQueue::instance().take(state.responseBuffer, state.responseBufferSize)) {
+            // When directly writing the responseBuffer you must return RESULT_RAW_BUFFER otherwise
+            // the writer will be closed, which will cause the second character of the buffer to be 
+            // overwritten with a }.
+            result = ControlRequest::RESULT_RAW_BUFFER;
+        }
     }
 
     return result;

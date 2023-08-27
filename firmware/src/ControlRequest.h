@@ -8,19 +8,9 @@
 class ControlRequestState {
 public:
     String op;
-    char *responseBuffer;
+    char *responseBuffer; //!< Normally you should use writer, this is only if you need to add a pre-formatted JSON object
     size_t responseBufferSize;
 };
-
-class ControlRequestStatus {
-public:
-    ControlRequestStatus(const char *key, std::function<void(const String &key, JSONBufferWriter &writer)> fn) : key(key), fn(fn) {
-    }
-
-    String key;
-    std::function<void(const String &key, JSONBufferWriter &writer)> fn;
-};
-
 
 class ControlRequest {
 public:
@@ -38,6 +28,7 @@ public:
 
     static const size_t responseBufferSize = 512;
     static const int RESULT_CONTINUE = 1;
+    static const int RESULT_RAW_BUFFER = 2;
 
 protected:
     void threadFunction();
