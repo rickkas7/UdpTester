@@ -51,6 +51,29 @@ async function run() {
 
     helper.rl.output.write('Opened Particle device ' + usbDevice.type + ' (' + usbDevice.id + ') via USB\n');
     
+    let msgTimer;
+    msgTimer = setInterval(async function() {
+    
+        try {
+            let reqObj = {
+                op: 'msg'
+            };
+            const res = await usbDevice.sendControlRequest(10, JSON.stringify(reqObj));
+
+            console.log('res', res);
+        }
+        catch(e) {
+            console.log('control request exception', e);
+            /*
+            if (msgTimer) {
+                clearInterval(msgTimer);
+                msgTimer = null;
+            }
+            */
+        }
+    
+    }, 1000);
+
     const testOptions = {
         showQuitOption: true,
     };
@@ -60,10 +83,12 @@ async function run() {
         'Download (to device)',
     ];
     
-    const test = await helper.questionMenu('Run Test? ', tests, testOptions);
+    while(true) {
+        const test = await helper.questionMenu('Function? ', tests, testOptions);
 
-    // Note: result is a zero-based index 
-    console.log('test', test);
+        // Note: result is a zero-based index 
+        console.log('test', test);    
+    }
 }
 
 run();

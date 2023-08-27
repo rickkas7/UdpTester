@@ -3,6 +3,7 @@
 ControlRequest *ControlRequest::_instance;
 
 
+
 ControlRequest &ControlRequest::instance() {
     // May be called during global object initialization, beware!
     if (!_instance) {
@@ -30,6 +31,8 @@ int ControlRequest::customHandler(ctrl_request *req) {
     memset(responseBuffer, 0, sizeof(responseBuffer));
 
     ControlRequestState state;
+    state.responseBuffer = responseBuffer;
+    state.responseBufferSize = sizeof(responseBuffer);
 
     {
         JSONObjectIterator iter(outerObj);
@@ -99,10 +102,31 @@ bool ControlRequestMessageQueue::put(const char *json) {
 
     char *entry = strdup(json);
     if (entry) {
-        res = os_queue_put(queue, &entry, 0, NULL);
+        for(int tries = 1; tries <= 4; tries++) {
+            res = os_queue_put(queue, &entry, 0, NULL);
+            if (res == 0) {
+                break;
+            }
+            char *temp;
+            os_queue_take(queue, &temp, 0, NULL);
+        }
     }  
     return res == 0;
 }
+
+bool ControlRequestMessageQueue::putObject(std::function<void(JSONWriter &writer)>fn) {
+    char buf[ControlRequest::responseBufferSize - 1];
+
+    JSONBufferWriter writer(buf, sizeof(buf) - 1);
+
+    writer.beginObject();
+    fn(writer);
+    writer.endObject();
+    writer.buffer()[std::min(writer.bufferSize(), writer.dataSize())] = 0;
+
+    return put(buf);
+}
+
 
 bool ControlRequestMessageQueue::take(char *buf, size_t bufSize) {
     char *json = nullptr;
@@ -124,8 +148,9 @@ REGISTER_CONTROL_REQUEST_HANDLER([](ControlRequestState &state, JSONValue &outer
     int result = SYSTEM_ERROR_NOT_SUPPORTED;
 
     if (state.op == "msg") {
-        responseBuffer[0] = 0;  
-        ControlRequestMessageQueue::instance().take(responseBuffer, sizeof(responseBuffer));
+        // Normally you use writer, but since we need to use pre-formatted JSON, we just replace
+        // the entire buffer
+        ControlRequestMessageQueue::instance().take(state.responseBuffer, state.responseBufferSize);
         result = SYSTEM_ERROR_NONE;
     }
 

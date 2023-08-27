@@ -8,6 +8,8 @@
 class ControlRequestState {
 public:
     String op;
+    char *responseBuffer;
+    size_t responseBufferSize;
 };
 
 class ControlRequestStatus {
@@ -75,6 +77,8 @@ public:
     static ControlRequestMessageQueue &instance();
 
     bool put(const char *json);
+
+    bool putObject(std::function<void(JSONWriter &writer)>fn);
 
     bool take(char *buf, size_t bufSize);
 
