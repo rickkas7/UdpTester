@@ -8,9 +8,10 @@ helper
 const usb = require('particle-usb');
 
 let settings = {
-    interval: 1000, // milliseconds
-    size: 1024, // bytes of UDP payload
-    port: 8200,
+    interval: 1, // milliseconds, minimum 1
+    count: 1, // number of packets per interval
+    size: 128, // bytes of UDP payload. Minimum 4, Maximum 10000
+    port: 8200, // Used for device to server
 };
 
 let usbDevice;
@@ -62,7 +63,7 @@ async function sendControlRequest(reqObj) {
     try {
         const res = await usbDevice.sendControlRequest(10, JSON.stringify(reqObj));
 
-        if (res.result == 0 && typeof res.data !== 'undefined') {
+        if (res.result == 0 && typeof res.data !== 'undefined') {            
             const json = JSON.parse(res.data);
             return json;
         }
@@ -113,48 +114,83 @@ async function run() {
     };
 
     const testCommands = [
+        /*
         {
             title: 'Set interval',
-            function: function () {
-
+            function: async function () {
+                const value = await helper.questionNumber('Interval in millisecond (minimum: 1, default 10)', {});
+                if (value >= 1) {
+                    settings.interval = value;
+                }
+                else {
+                    helper.rl.output.write('Invalid value');
+                }
+            },
+        },
+        {
+            title: 'Set packet counter per interval',
+            function: async function () {
+                const value = await helper.questionNumber('Packet count per interval (default: 1)', {});
+                if (value >= 1) {
+                    settings.count = value;
+                }
+                else {
+                    helper.rl.output.write('Invalid value');
+                }
             },
         },
         {
             title: 'Set packet size',
-            function: function () {
-
+            function: async function () {
+                const value = await helper.questionNumber('Packet size (minimum: 4, maximum: 10000, default 1024)', {});
+                if (value >= 4 && value <= 10000) {
+                    settings.size = value;
+                }
+                else {
+                    helper.rl.output.write('Invalid value');
+                }
             },
         },
+        */
+        /*
         {
             title: 'Run upload test (from device)',
             function: function () {
 
             },
         },
+        */
         {
             title: 'Run download (to device)',
             function: async function () {
+                console.log('stopping');
                 await stopTest();
 
+                console.log('starting');
                 await sendControlRequest({ op: 'start' });
 
                 seq = 0;
 
                 runTimer = setInterval(function() {
-                    let msg = Buffer.alloc(settings.size);
-                    for(let ii = 4; ii < settings.size; ii++) {
-                        msg.writeUInt8(ii % 256, ii);
+                    for(let num = 0; num < settings.count; num++) {
+                        let msg = Buffer.alloc(settings.size);
+                        for(let ii = 4; ii < settings.size; ii++) {
+                            msg.writeUInt8(ii % 256, ii);
+                        }
+                        msg.writeInt32LE(sendSeq++, 0);
+    
+                        server.send(msg, remotePort, remoteAddr);
+    
                     }
-                    msg.writeInt32LE(sendSeq++, 0);
-
-                    server.send(msg, remotePort, remoteAddr);
                 }, settings.interval);
             },
         },
+        /*
         {
             title: 'Stop test',
             function: stopTest,
         }
+        */
     ];
 
     const res = await sendControlRequest({ op: 'info' });
